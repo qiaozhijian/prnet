@@ -839,25 +839,37 @@ class PRNet(nn.Module):
     def load(self, path):
         self.acpnet.load_state_dict(torch.load(path),strict=False)
 
+    def initModule(self,modules):
+        for m in modules:
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in")
+                # nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_uniform_(m.weight, mode="fan_in")
+                # nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, mean=0, std=1e-3)
+                nn.init.constant_(m.bias, 0)
+
     def initNet(self):
         if hasattr(self.acpnet, 'emb_nn'):
-            print('init lpdNet')
-            for m in self.acpnet.emb_nn.modules():
-                if isinstance(m, nn.Conv1d):
-                    nn.init.kaiming_uniform_(m.weight, mode="fan_in")
-                    # nn.init.constant_(m.bias, 0)
-                elif isinstance(m, nn.Conv2d):
-                    nn.init.kaiming_uniform_(m.weight, mode="fan_in")
-                    # nn.init.constant_(m.bias, 0)
-                elif isinstance(m, nn.BatchNorm1d):
-                    nn.init.constant_(m.weight, 1)
-                    nn.init.constant_(m.bias, 0)
-                elif isinstance(m, nn.BatchNorm2d):
-                    nn.init.constant_(m.weight, 1)
-                    nn.init.constant_(m.bias, 0)
-                elif isinstance(m, nn.Linear):
-                    nn.init.normal_(m.weight, mean=0, std=1e-3)
-                    nn.init.constant_(m.bias, 0)
+            print('init emb_nn')
+            self.initModule(self.acpnet.emb_nn.modules())
+        if hasattr(self.acpnet, 'keypointnet'):
+            print('init keypointnet')
+            self.initModule(self.acpnet.keypointnet.modules())
+        if hasattr(self.acpnet, 'temp_net'):
+            print('init temp_net')
+            self.initModule(self.acpnet.temp_net.modules())
+        if hasattr(self.acpnet, 'attention'):
+            print('init attention')
+            self.initModule(self.acpnet.attention.modules())
 
 
 class Logger:
