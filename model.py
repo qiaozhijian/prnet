@@ -587,6 +587,8 @@ class PRNet(nn.Module):
 
         if self.model_path != '':
             self.load(self.model_path)
+        else:
+            self.initNet()
         if torch.cuda.device_count() > 1:
             self.acpnet = nn.DataParallel(self.acpnet)
 
@@ -836,6 +838,26 @@ class PRNet(nn.Module):
 
     def load(self, path):
         self.acpnet.load_state_dict(torch.load(path),strict=False)
+
+    def initNet(self):
+        if hasattr(self.acpnet, 'emb_nn'):
+            print('init lpdNet')
+            for m in self.acpnet.emb_nn.modules():
+                if isinstance(m, nn.Conv1d):
+                    nn.init.kaiming_uniform_(m.weight, mode="fan_in")
+                    # nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Conv2d):
+                    nn.init.kaiming_uniform_(m.weight, mode="fan_in")
+                    # nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.BatchNorm1d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.BatchNorm2d):
+                    nn.init.constant_(m.weight, 1)
+                    nn.init.constant_(m.bias, 0)
+                elif isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-3)
+                    nn.init.constant_(m.bias, 0)
 
 
 class Logger:
