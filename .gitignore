@@ -24,3 +24,8 @@ note
 experiment
 train_models
 record models
+checkpoints
+data
+*.pyc
+__pycache__
+__pycache__/data.cpython-38.pyc
