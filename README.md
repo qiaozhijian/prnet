@@ -23,7 +23,7 @@ conda activate prnet
 
 ### exp1 modelnet40
 
-python main.py --batch_size=3
+CUDA_VISIBLE_DEVICES=1,3 python main.py --batch_size=12 --test_batch_size=20 --model_path="./dcp_v2.t7"
 
 ### exp2 modelnet40 unseen
 

@@ -553,6 +553,7 @@ class ACPNet(nn.Module):
 
         src, tgt, src_embedding, tgt_embedding = self.keypointnet(src, tgt, src_embedding, tgt_embedding)
 
+        # 得到特征差以及经过mlp得到一个0.01到100之间的温度值
         temperature, feature_disparity = self.temp_net(src_embedding, tgt_embedding)
 
         return src, tgt, src_embedding, tgt_embedding, temperature, feature_disparity
@@ -572,15 +573,19 @@ class ACPNet(nn.Module):
 class PRNet(nn.Module):
     def __init__(self, args):
         super(PRNet, self).__init__()
+        # 默认3次
         self.num_iters = args.n_iters
         self.logger = Logger(args)
+        # 0.9
         self.discount_factor = args.discount_factor
         self.acpnet = ACPNet(args)
         self.model_path = args.model_path
+        # 0.1
         self.feature_alignment_loss = args.feature_alignment_loss
+        # 0.1
         self.cycle_consistency_loss = args.cycle_consistency_loss
 
-        if self.model_path is not '':
+        if self.model_path != '':
             self.load(self.model_path)
         if torch.cuda.device_count() > 1:
             self.acpnet = nn.DataParallel(self.acpnet)
@@ -621,17 +626,21 @@ class PRNet(nn.Module):
         for i in range(self.num_iters):
             rotation_ab_pred_i, translation_ab_pred_i, rotation_ba_pred_i, translation_ba_pred_i, \
             feature_disparity = self.forward(src, tgt)
+
+            # 累计求位姿
             rotation_ab_pred = torch.matmul(rotation_ab_pred_i, rotation_ab_pred)
             translation_ab_pred = torch.matmul(rotation_ab_pred_i, translation_ab_pred.unsqueeze(2)).squeeze(2) \
                                   + translation_ab_pred_i
-
             rotation_ba_pred = torch.matmul(rotation_ba_pred_i, rotation_ba_pred)
             translation_ba_pred = torch.matmul(rotation_ba_pred_i, translation_ba_pred.unsqueeze(2)).squeeze(2) \
                                   + translation_ba_pred_i
 
+            # 本次迭代的位姿损失
             loss = (F.mse_loss(torch.matmul(rotation_ab_pred.transpose(2, 1), rotation_ab), identity) \
                    + F.mse_loss(translation_ab_pred, translation_ab)) * self.discount_factor**i
+            # 全局特征对齐
             feature_alignment_loss = feature_disparity.mean() * self.feature_alignment_loss * self.discount_factor**i
+            # 往返特征对齐
             cycle_consistency_loss = cycle_consistency(rotation_ab_pred_i, translation_ab_pred_i,
                                                        rotation_ba_pred_i, translation_ba_pred_i) \
                                      * self.cycle_consistency_loss * self.discount_factor**i
@@ -639,6 +648,7 @@ class PRNet(nn.Module):
             total_feature_alignment_loss += feature_alignment_loss
             total_cycle_consistency_loss += cycle_consistency_loss
             total_loss = total_loss + loss + feature_alignment_loss + cycle_consistency_loss + scale_consensus_loss
+            # 更新源点云
             src = transform_point_cloud(src, rotation_ab_pred_i, translation_ab_pred_i)
         total_loss.backward()
         opt.step()
@@ -825,7 +835,7 @@ class PRNet(nn.Module):
             torch.save(self.acpnet.state_dict(), path)
 
     def load(self, path):
-        self.acpnet.load_state_dict(torch.load(path))
+        self.acpnet.load_state_dict(torch.load(path),strict=False)
 
 
 class Logger:

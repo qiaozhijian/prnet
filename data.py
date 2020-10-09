@@ -32,7 +32,7 @@ def load_data(partition):
     all_data = []
     all_label = []
     for h5_name in glob.glob(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048', 'ply_data_%s*.h5' % partition)):
-        f = h5py.File(h5_name)
+        f = h5py.File(h5_name,'r')
         data = f['data'][:].astype('float32')
         label = f['label'][:].astype('int64')
         f.close()
@@ -68,7 +68,11 @@ def farthest_subsample_points(pointcloud1, pointcloud2, num_subsampled_points=76
     nbrs2 = NearestNeighbors(n_neighbors=num_subsampled_points, algorithm='auto',
                              metric=lambda x, y: minkowski(x, y)).fit(pointcloud2)
     random_p2 = random_p1 #np.random.random(size=(1, 3)) + np.array([[500, 500, 500]]) * np.random.choice([1, -1, 2, -2])
+    # 这种去不完全部分的方式，可能并不能达到很好的效果，还是会造成重合部分很多
     idx2 = nbrs2.kneighbors(random_p2, return_distance=False).reshape((num_subsampled_points,))
+    # print('random_p1',random_p1)
+    # print('pointcloud1',np.max(pointcloud1))
+    # print('pointcloud2',np.max(pointcloud2))
     return pointcloud1[idx1, :].T, pointcloud2[idx2, :].T
 
 
