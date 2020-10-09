@@ -23,7 +23,7 @@ conda activate prnet
 
 ### exp1 modelnet40
 
-python main.py --exp_name=exp1
+python main.py --batch_size=3
 
 ### exp2 modelnet40 unseen
 
