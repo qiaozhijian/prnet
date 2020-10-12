@@ -477,7 +477,7 @@ class KeyPointNet(nn.Module):
         self.num_keypoints = num_keypoints
 
     def forward(self, *input):
-        src = input[0]
+        src = input[0]#[B,3,768]
         tgt = input[1]
         src_embedding = input[2]
         tgt_embedding = input[3]
@@ -485,8 +485,8 @@ class KeyPointNet(nn.Module):
         src_norm = torch.norm(src_embedding, dim=1, keepdim=True)
         tgt_norm = torch.norm(tgt_embedding, dim=1, keepdim=True)
         src_topk_idx = torch.topk(src_norm, k=self.num_keypoints, dim=2, sorted=False)[1]
-        tgt_topk_idx = torch.topk(tgt_norm, k=self.num_keypoints, dim=2, sorted=False)[1]
-        src_keypoints_idx = src_topk_idx.repeat(1, 3, 1)
+        tgt_topk_idx = torch.topk(tgt_norm, k=self.num_keypoints, dim=2, sorted=False)[1]#[B,1,512]
+        src_keypoints_idx = src_topk_idx.repeat(1, 3, 1)#[B,3,512]
         tgt_keypoints_idx = tgt_topk_idx.repeat(1, 3, 1)
         src_embedding_idx = src_topk_idx.repeat(1, num_dims, 1)
         tgt_embedding_idx = tgt_topk_idx.repeat(1, num_dims, 1)
